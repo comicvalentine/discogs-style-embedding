@@ -45,18 +45,20 @@ class VisualConfig:
     text_position: str = "top center"
 
     init_mode:str = "markers"
+    init_dragmode:str = "pan"
+    init_style: str | None=None
+    init_margin: int | None=None
 
-    init_dragmode:str = "zoom"
     color_palette = px.colors.qualitative.Dark24
 
 def visual(emb_df, 
-             tag_dict, 
-             save_dir, 
-             n_components: int, 
-             tag_name="Main Genre", 
-             post_script:str = "", 
-             umap_kwargs=None,
-             visual_cfg: VisualConfig | None=None):
+            tag_dict, 
+            save_dir, 
+            n_components: int, 
+            tag_name="Main Genre", 
+            post_script:str = "", 
+            umap_kwargs=None,
+            visual_cfg: VisualConfig | None=None):
     
     if visual_cfg is None:
         visual_cfg = VisualConfig()
@@ -85,7 +87,7 @@ def visual(emb_df,
     fig = px.scatter(
         emb_df,
         text="style",
-        hover_name="style",
+        hover_name = "style",
         color=tag_name,
         color_discrete_sequence=visual_cfg.color_palette,
         **axis_kwargs
@@ -98,43 +100,50 @@ def visual(emb_df,
         mode=visual_cfg.init_mode
     )
 
-    # Add toggle buttons to show/hide text labels
-    fig.update_layout(
-        updatemenus=[
-            dict(
-                type="buttons",
-                direction="left",
-                buttons=[
-                    dict(
-                        label="Show Text",
-                        method="restyle",
-                        args=["mode", "markers+text"]
-                    ),
-                    dict(
-                        label="Hide Text",
-                        method="restyle",
-                        args=["mode", "markers"]
-                    ),
-                ],
-                pad={"r": 10, "t": 10},
-                showactive=True,
-                x=0.1,
-                xanchor="left",
-                y=1.1,
-                yanchor="top"
-            ),
-        ]
-    )
 
     # Set initial interaction mode (e.g., 'pan' or 'zoom')    
     fig.update_layout(
         dragmode=visual_cfg.init_dragmode
     )
 
+    if visual_cfg.init_style is not None:
+        # 1. 대상 스타일 행 찾기
+        target_row = emb_df[emb_df['style'].str.contains(visual_cfg.init_style, case=False, na=False)]
+        
+        if not target_row.empty:
+
+            ratio = (visual_cfg.init_margin / 100.0) if visual_cfg.init_margin else 1
+            
+            update_layout_kwargs = {}
+            scene_kwargs = {}
+
+            for i, axis in enumerate(["xaxis", "yaxis", "zaxis"][:n_components]):
+                col = f"dim_{i}"
+                full_min, full_max = emb_df[col].min(), emb_df[col].max()
+                full_range = full_max - full_min
+                center_val = target_row[col].mean()
+                
+                half_display_range = (full_range * ratio) / 2
+                new_min = center_val - half_display_range
+                new_max = center_val + half_display_range
+                
+                if n_components == 3:
+                    scene_kwargs[axis] = dict(range=[new_min, new_max])
+                else:
+                    update_layout_kwargs[f"{axis}.range"] = [new_min, new_max]
+
+            if n_components == 3:
+                fig.update_layout(scene=scene_kwargs)
+            else:
+                fig.update_layout(update_layout_kwargs)
+
+    json_data = emb_df.to_json(orient='records')
+    full_script = f"var search_data = {json_data}; \n {post_script}"
+
     fig.write_html(
         save_dir,
         include_plotlyjs="cdn",
-        post_script = post_script
+        post_script = full_script
     )
 
 import argparse
@@ -174,14 +183,20 @@ if __name__ == "__main__":
 
     save_dir = f"./docs/style_{algo}_{search_type}_umap"
 
-
+    try:
+        with open("post_script.js", "r", encoding="utf-8") as f:
+            post_script = f.read()
+    except Exception as e:
+        post_script = ""
+    
     visual(emb_df=emb_df, 
            tag_dict=style_to_main_genre, 
            save_dir = f"{save_dir}.html", 
            n_components=2, 
            tag_name="Main Genre", 
            umap_kwargs=None,
-           visual_cfg = VisualConfig(fig_width=1600, fig_height=1200))
+           post_script=post_script,
+           visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_style="Comfy Synth", init_dragmode="pan", init_margin=20, init_mode="markers+text"))
     
     visual(emb_df=emb_df, 
            tag_dict=style_to_main_genre, 
@@ -189,4 +204,5 @@ if __name__ == "__main__":
            n_components=3, 
            tag_name="Main Genre",
            umap_kwargs=None,
-           visual_cfg = VisualConfig())
+           post_script=post_script,
+           visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_margin=10))
