@@ -217,3 +217,97 @@ resetBtn.onclick = () => {
     Plotly.relayout(plot, {'xaxis.autorange': true, 'yaxis.autorange': true});
 };
 controlBar.appendChild(resetBtn);
+
+
+//7. Mini-map
+
+const miniMapContainer = document.createElement('div');
+miniMapContainer.id = 'mini-map-container';
+miniMapContainer.style = `
+    position: absolute;
+    bottom: 20px;
+    right: 15px;
+    width: 200px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    z-index: 1000;
+    pointer-events: none;
+`;
+plot.parentNode.appendChild(miniMapContainer);
+
+const miniPlot = document.createElement('div');
+miniPlot.style = "width: 100%; height: 100%;";
+miniMapContainer.appendChild(miniPlot);
+
+const miniData = plot.data.map(trace => ({
+    x: trace.x,
+    y: trace.y,
+    mode: 'markers',
+    type: 'scatter',
+    marker: {
+        size: 2,
+        color: trace.marker.color,
+        opacity: 0.5
+    },
+    hoverinfo: 'none'
+}));
+
+const miniLayout = {
+    margin: { t: 0, b: 0, l: 0, r: 0 },
+    xaxis: { visible: false, fixedrange: true },
+    yaxis: { visible: false, fixedrange: true },
+    showlegend: false,
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)'
+};
+
+Plotly.newPlot(miniPlot, miniData, miniLayout, {staticPlot: true});
+
+const viewfinder = document.createElement('div');
+viewfinder.style = `
+    position: absolute;
+    border: 1.5px solid #1393FD;
+    background: rgba(19, 147, 253, 0.2);
+    top: 0; left: 0; width: 0; height: 0;
+    pointer-events: none;
+    box-sizing: border-box;
+`;
+miniMapContainer.appendChild(viewfinder);
+
+const allX = search_data.map(d => d.dim_0);
+const allY = search_data.map(d => d.dim_1);
+const xAll = [Math.min(...allX), Math.max(...allX)];
+const yAll = [Math.min(...allY), Math.max(...allY)];
+const xSpan = xAll[1] - xAll[0];
+const ySpan = yAll[1] - yAll[0];
+
+const updateViewfinder = () => {
+    const fullX = plot._fullLayout.xaxis;
+    const fullY = plot._fullLayout.yaxis;
+    
+    const xRange = fullX.range;
+    const yRange = fullY.range;
+    
+    const w = 200; 
+    const h = 150; 
+    
+    const left = ((xRange[0] - xAll[0]) / xSpan) * w;
+    const width = ((xRange[1] - xRange[0]) / xSpan) * w;
+    
+    const top = ((yAll[1] - yRange[1]) / ySpan) * h;
+    const height = ((yRange[1] - yRange[0]) / ySpan) * h;
+    
+    viewfinder.style.left = Math.max(0, left) + 'px';
+    viewfinder.style.width = Math.min(w - left, width) + 'px';
+    viewfinder.style.top = Math.max(0, top) + 'px';
+    viewfinder.style.height = Math.min(h - top, height) + 'px';
+};
+
+plot.on('plotly_relayout', () => {
+    window.requestAnimationFrame(updateViewfinder);
+});
+
+setTimeout(updateViewfinder, 500);
+

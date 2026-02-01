@@ -103,8 +103,25 @@ def visual(emb_df,
 
     # Set initial interaction mode (e.g., 'pan' or 'zoom')    
     fig.update_layout(
-        dragmode=visual_cfg.init_dragmode
+        dragmode=visual_cfg.init_dragmode,
     )
+
+    fig.update_layout(
+        xaxis_title=None, 
+        yaxis_title=None,
+        xaxis=dict(
+                showticklabels=False,
+                zeroline=False
+            ),
+        yaxis=dict(
+                showticklabels=False,
+                zeroline=False
+            ),
+        scene=dict(
+        xaxis=dict(title='', showticklabels=False),
+        yaxis=dict(title='', showticklabels=False),
+        zaxis=dict(title='', showticklabels=False)
+        ) if n_components == 3 else None)
 
     if visual_cfg.init_style is not None:
         # 1. 대상 스타일 행 찾기
@@ -136,7 +153,8 @@ def visual(emb_df,
                 fig.update_layout(scene=scene_kwargs)
             else:
                 fig.update_layout(update_layout_kwargs)
-
+    
+    emb_df.rename(columns = {"Main Genre":"main_genre"}, inplace=True)
     json_data = emb_df.to_json(orient='records')
     full_script = f"var search_data = {json_data}; \n {post_script}"
 
