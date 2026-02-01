@@ -35,7 +35,7 @@ with open(f"./embedding_data/Node2Vec/network_{search_type}.pkl","wb") as f:
 
 node2vec = Node2Vec(
     G,
-    dimensions=64,
+    dimensions=32,
     walk_length=80,
     num_walks=10,
     p=1,

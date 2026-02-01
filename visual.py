@@ -196,7 +196,7 @@ if __name__ == "__main__":
            tag_name="Main Genre", 
            umap_kwargs=None,
            post_script=post_script,
-           visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_style="Comfy Synth", init_dragmode="pan", init_margin=20, init_mode="markers+text"))
+           visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_style="New Wave", init_dragmode="pan", init_margin=20, init_mode="markers+text"))
     
     visual(emb_df=emb_df, 
            tag_dict=style_to_main_genre, 

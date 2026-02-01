@@ -21,7 +21,7 @@ class Corpus:
 
 model = Word2Vec(
     sentences=Corpus(),
-    vector_size=64,
+    vector_size=32,
     window=10,
     min_count=5,
     workers=8,
