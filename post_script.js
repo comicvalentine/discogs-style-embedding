@@ -189,12 +189,28 @@ searchInput.onkeypress = (e) => {
             const zoomRatio = 0.15; 
             const halfSpanX = (globalSpanX * zoomRatio) / 2;
             const halfSpanY = (globalSpanY * zoomRatio) / 2;
+            
+            const circleSize = Math.min(globalSpanX,globalSpanY) * 0.005;
+            
+            const highlightCircle = {
+                type: 'circle',
+                xref: 'x', yref: 'y',
+                x0: avgX - circleSize, x1: avgX + circleSize,
+                y0: avgY - circleSize, y1: avgY + circleSize,
+                line: {
+                    color: '#101010',
+                    width: 3
+                },
+                fillcolor: 'rgba(0,0,0,0)',
+            };
 
             Plotly.relayout(plot, {
                 'xaxis.autorange': false,
                 'yaxis.autorange': false,
                 'xaxis.range': [avgX - halfSpanX, avgX + halfSpanX],
-                'yaxis.range': [avgY - halfSpanY, avgY + halfSpanY]
+                'yaxis.range': [avgY - halfSpanY, avgY + halfSpanY],
+                'shapes': [highlightCircle] // 하이라이트 원 적용
+
             });
             searchInput.style.borderColor = "#18D85F";
             setTimeout(() => searchInput.style.borderColor = "#ccc", 1000);
@@ -311,3 +327,29 @@ plot.on('plotly_relayout', () => {
 
 setTimeout(updateViewfinder, 500);
 
+// 8. Move to Discogs search page of the style
+
+const style = document.createElement('style');
+style.innerHTML = `
+    .hover-pointer .nsewdrag {
+        cursor: pointer !important;
+    }
+`;
+document.head.appendChild(style);
+
+plot.on('plotly_hover', function(data){
+    plot.classList.add('hover-pointer');
+});
+
+plot.on('plotly_unhover', function(data){
+    plot.classList.remove('hover-pointer');
+});
+
+plot.on('plotly_click', function(data){
+    var point = data.points[0];
+    if (point && point.text) {
+        var styleName = point.text.replace(/ /g, "+"); 
+        var url = `https://www.discogs.com/search?type=masters&page=1&style_exact=${styleName}&sort=have%2Cdesc`;
+        window.open(url, '_blank');
+    }
+});
