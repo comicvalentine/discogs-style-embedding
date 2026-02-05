@@ -199,11 +199,11 @@ searchInput.onkeypress = (e) => {
                 y0: avgY - circleSize, y1: avgY + circleSize,
                 line: {
                     color: '#101010',
-                    width: 3
+                    width: 0.5
                 },
                 fillcolor: 'rgba(0,0,0,0)',
             };
-
+            
             Plotly.relayout(plot, {
                 'xaxis.autorange': false,
                 'yaxis.autorange': false,
