@@ -3,7 +3,7 @@ import pickle
 import plotly.express as px
 import umap.umap_ as umap
 from dataclasses import dataclass
-
+from collections import defaultdict
 ###### Dimensionality reduction using UMAP #######
 # Hyperparameters are controlled via umap_kwargs
 
@@ -57,6 +57,7 @@ def visual(emb_df,
             n_components: int, 
             tag_name="Main Genre", 
             post_script:str = "", 
+            hover_data: dict | None = None,
             umap_kwargs=None,
             visual_cfg: VisualConfig | None=None):
     
@@ -79,27 +80,38 @@ def visual(emb_df,
 
     # Style and genre names use "_" as spacers; replace with spaces for better readability
     emb_df[tag_name] = [tag_dict.get(style, "Unknown").replace("_", " ") for style in emb_df["style"]]
+    if hover_data:
+        def format_hover(style_key):
+            props = hover_data.get(style_key.replace(" ", "_"), {}) 
+            return "<br>".join([f"{k}: {v:.1%}" for k, v in props.items()])
+        emb_df["hover_text"] = [format_hover(s) for s in emb_df['style']]
+                
     emb_df['style'] = [style.replace("_", " ") for style in emb_df["style"]]
-
+    
     if n_components == 3:
         px.scatter = px.scatter_3d
 
     fig = px.scatter(
         emb_df,
         text="style",
-        hover_name = "style",
         color=tag_name,
         color_discrete_sequence=visual_cfg.color_palette,
+        hover_data={"hover_text": True, "style": True},
         **axis_kwargs
     )
 
+
+    if hover_data:
+        fig.update_traces(
+            hovertemplate="<b>%{text}</b><br><br>%{customdata[0]}<extra></extra>"
+        )
+    
     fig.update_traces(
         marker=dict(size=visual_cfg.marker_size, opacity=visual_cfg.marker_opacity),
         textposition=visual_cfg.text_position,
         textfont=dict(size=visual_cfg.font_size),
         mode=visual_cfg.init_mode
     )
-
 
     # Set initial interaction mode (e.g., 'pan' or 'zoom')    
     fig.update_layout(
@@ -124,7 +136,6 @@ def visual(emb_df,
         ) if n_components == 3 else None)
 
     if visual_cfg.init_style is not None:
-        # 1. 대상 스타일 행 찾기
         target_row = emb_df[emb_df['style'].str.contains(visual_cfg.init_style, case=False, na=False)]
         
         if not target_row.empty:
@@ -193,11 +204,17 @@ if __name__ == "__main__":
 
     with open(f"./embedding_data/max_genre_counter_{search_type}.pkl", "rb") as f:
         max_genre_counter = pickle.load(f)
-
+    
     style_to_main_genre = {
         st: cnt.most_common(1)[0][0]
         for st, cnt in max_genre_counter.items()
     }
+
+    genre_prop = defaultdict(dict)
+    for st, cnt in max_genre_counter.items():
+        st_pop = sum(cnt.values())
+        for ord, genre in enumerate(sorted(cnt, key = lambda x: cnt[x], reverse=True)[:3]):
+            genre_prop[st][genre.replace("_", " ")] = cnt[genre]/st_pop
 
     save_dir = f"./docs/style_{algo}_{search_type}_umap"
 
@@ -211,7 +228,8 @@ if __name__ == "__main__":
            tag_dict=style_to_main_genre, 
            save_dir = f"{save_dir}.html", 
            n_components=2, 
-           tag_name="Main Genre", 
+           tag_name="Main Genre",
+           hover_data = genre_prop,
            umap_kwargs=None,
            post_script=post_script,
            visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_style="New Wave", init_dragmode="pan", init_margin=20, init_mode="markers+text"))
@@ -221,6 +239,7 @@ if __name__ == "__main__":
            save_dir = f"{save_dir}_3d.html", 
            n_components=3, 
            tag_name="Main Genre",
+           hover_data = genre_prop,
            umap_kwargs=None,
            post_script=post_script,
            visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_margin=10))
