@@ -49,7 +49,12 @@ class VisualConfig:
     init_style: str | None=None
     init_margin: int | None=None
 
-    color_palette = px.colors.qualitative.Dark24
+    color_palette = px.colors.qualitative.Light24
+
+    paper_bgcolor = "#F9F9F9"
+    plot_bgcolor = "#E7E7E7"
+    grid_color = '#F9F9F9'
+
 
 def visual(emb_df, 
             tag_dict, 
@@ -99,7 +104,20 @@ def visual(emb_df,
         hover_data={"hover_text": True, "style": True},
         **axis_kwargs
     )
+    fig.update_layout(
+        paper_bgcolor = VisualConfig.paper_bgcolor,
+        plot_bgcolor=VisualConfig.plot_bgcolor
+    )
+    grid_style = dict(
+        showgrid=True, 
+        gridwidth=0.5, 
+        gridcolor=VisualConfig.grid_color,
+        zeroline=False
+    )
 
+    fig.update_xaxes(**grid_style)
+    fig.update_yaxes(**grid_style)
+    
 
     if hover_data:
         fig.update_traces(
@@ -232,7 +250,7 @@ if __name__ == "__main__":
            hover_data = genre_prop,
            umap_kwargs=None,
            post_script=post_script,
-           visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_style="New Wave", init_dragmode="pan", init_margin=20, init_mode="markers+text"))
+           visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, init_style="Post-Punk", init_dragmode="pan", init_margin=17, init_mode="markers+text"))
     
     visual(emb_df=emb_df, 
            tag_dict=style_to_main_genre, 
