@@ -17,8 +17,8 @@ Visualizing relationships between music subgenres from **Discogs**.
 ## Map Visualizations
 | Method | 2D | 3D |
 |--------|----|----|
-| Word2Vec | [View](https://comicvalentine.github.io/Discogs_style_embedding/style_Word2Vec_masters_umap.html) | [View](https://comicvalentine.github.io/Discogs_style_embedding/style_Word2Vec_masters_umap_3d.html) |
-| Node2Vec | [View](https://comicvalentine.github.io/Discogs_style_embedding/style_Node2Vec_masters_umap.html) | [View](https://comicvalentine.github.io/Discogs_style_embedding/style_Node2Vec_masters_umap_3d.html) |
+| Word2Vec | [View](https://comicvalentine.github.io/discogs-style-embedding/style_Word2Vec_masters_umap.html) | [View](https://comicvalentine.github.io/discogs-style-embedding/style_Word2Vec_masters_umap_3d.html) |
+| Node2Vec | [View](https://comicvalentine.github.io/discogs-style-embedding/style_Node2Vec_masters_umap.html) | [View](https://comicvalentine.github.io/discogs-style-embedding/style_Node2Vec_masters_umap_3d.html) |
 
 ## Data Sources
 - **Discogs monthly data dump:** [https://data.discogs.com/](https://data.discogs.com/)  
