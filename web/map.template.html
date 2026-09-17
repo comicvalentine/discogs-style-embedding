@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+/*__STYLE__*/
+</style>
+</head>
+<body>
+<div class="map-app">
+  <div class="toolbar">
+    <div class="field">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search-input" placeholder="Find a style…" autocomplete="off">
+    </div>
+    <div class="toggle">
+      <button id="labels-on" class="is-active">Labels On</button>
+      <button id="labels-off">Off</button>
+    </div>
+    <button id="reset-btn" class="btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M4 9h5"/></svg>
+      Reset view
+    </button>
+    <span class="stat" id="stat-readout"></span>
+  </div>
+  <div class="stage">
+    <div class="map-frame">
+      <svg id="map-svg"></svg>
+      <div class="tooltip"></div>
+    </div>
+    <div class="sidebar">
+      <div class="panel">
+        <p class="panel-title">Overview</p>
+        <div class="minimap">
+          <svg id="minimap-svg"></svg>
+          <div class="viewfinder"></div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1; min-height:0; display:flex; flex-direction:column;">
+        <p class="panel-title">Genres</p>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+window.__MAP_DATA__ = /*__DATA__*/;
+</script>
+<script>
+/*__SCRIPT__*/
+</script>
+</body>
+</html>

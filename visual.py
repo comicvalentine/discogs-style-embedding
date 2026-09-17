@@ -1,11 +1,75 @@
 import pandas as pd
 import pickle
+import json
+from pathlib import Path
 import plotly.express as px
-from umap_project import umap_project
 from dataclasses import dataclass
 from collections import defaultdict
 
-###### Plotly Visualization #######
+WEB_DIR = Path(__file__).parent / "web"
+GENRE_HUE_START = 40  # kept away from the UI accent hue (176, teal) in web/map.css
+
+
+def genre_hue_map(genres: list[str]) -> dict[str, int]:
+    ordered = sorted(set(genres))
+    n = len(ordered) or 1
+    return {g: (GENRE_HUE_START + round(i * 360 / n)) % 360 for i, g in enumerate(ordered)}
+
+
+def render_map_2d(algo, tag_dict, save_dir, hover_data, search_type,
+                   init_style="hardcore", init_margin_pct=0.12, umap_kwargs=None):
+    """Renders the 2D UMAP scatter as a self-contained D3 page (no plotly)."""
+
+    EMB_UMAP_DIR = f"./embedding_data/{algo}/embedding_df_{search_type}_umap_2D.csv"
+    try:
+        emb_df = pd.read_csv(EMB_UMAP_DIR)
+    except FileNotFoundError:
+        print("umap not conducted")
+        from umap_project import umap_project
+        EMB_DIR = f"./embedding_data/{algo}/embedding_df_{search_type}.csv"
+        emb_df = pd.read_csv(EMB_DIR)
+        coords = umap_project(emb_df.drop(columns=["style"]), n_components=2, umap_kwargs=umap_kwargs)
+        emb_df["dim_0"] = coords[:, 0]
+        emb_df["dim_1"] = coords[:, 1]
+        emb_df.to_csv(EMB_UMAP_DIR)
+
+    genres = [tag_dict.get(style, "Unknown") for style in emb_df["style"]]
+    hue_map = genre_hue_map(genres)
+
+    points = []
+    for style_key, genre, dim0, dim1 in zip(emb_df["style"], genres, emb_df["dim_0"], emb_df["dim_1"]):
+        props = hover_data.get(style_key, {}) if hover_data else {}
+        points.append({
+            "style": style_key.replace("_", " "),
+            "dim0": float(dim0),
+            "dim1": float(dim1),
+            "genre": genre.replace("_", " "),
+            "hover": [[g, p] for g, p in props.items()],
+        })
+
+    hue_map = {g.replace("_", " "): h for g, h in hue_map.items()}
+
+    payload = {
+        "points": points,
+        "genreHue": hue_map,
+        "init": {"style": init_style, "marginPct": init_margin_pct},
+    }
+
+    template = (WEB_DIR / "map.template.html").read_text(encoding="utf-8")
+    css = (WEB_DIR / "map.css").read_text(encoding="utf-8")
+    script = (WEB_DIR / "map.js").read_text(encoding="utf-8")
+    data_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+
+    html = (template
+            .replace("__TITLE__", f"Discogs Style Map — {algo}")
+            .replace("/*__STYLE__*/", css)
+            .replace("/*__DATA__*/", data_json)
+            .replace("/*__SCRIPT__*/", script))
+
+    Path(save_dir).write_text(html, encoding="utf-8")
+
+
+###### Plotly Visualization (kept for the 3D view only, for now) #######
 # Visual settings are managed by VisualConfig
 @dataclass
 class VisualConfig:
@@ -53,6 +117,7 @@ def visual(algo,
 
     except FileNotFoundError:
         print("umap not conducted")
+        from umap_project import umap_project
         EMB_DIR = f"./embedding_data/{algo}/embedding_df_{search_type}.csv"
         emb_df = pd.read_csv(EMB_DIR)
         coords = umap_project(emb_df.drop(columns=["style"]), n_components=n_components, umap_kwargs = umap_kwargs)
@@ -236,18 +301,16 @@ if __name__ == "__main__":
     except Exception as e:
         post_script = ""
     
-    visual(algo = algo, 
-           tag_dict=style_to_main_genre, 
-           save_dir = f"{save_dir}.html", 
-           n_components=2, 
-           tag_name="Main Genre",
-           hover_data = genre_prop,
-           umap_kwargs={"min_dist":0.5, "spread":0.6},
-           post_script=post_script,
-           visual_cfg=VisualConfig(fig_width=1600, fig_height=1200, 
-                                   font_size=12, marker_size = 15,
-                                   init_style="hardcore", init_dragmode="pan", init_margin=12, init_mode="markers+text"))
-    
+    render_map_2d(algo=algo,
+                  tag_dict=style_to_main_genre,
+                  save_dir=f"{save_dir}.html",
+                  hover_data=genre_prop,
+                  search_type=search_type,
+                  init_style="hardcore",
+                  init_margin_pct=0.12,
+                  umap_kwargs={"min_dist": 0.5, "spread": 0.6})
+
+
     visual(algo = algo, 
            tag_dict=style_to_main_genre, 
            save_dir = f"{save_dir}_3d.html", 
