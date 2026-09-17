@@ -19,10 +19,21 @@
   const viewfinder = document.querySelector(".viewfinder");
 
   const points = DATA.points;
-  const genreHue = DATA.genreHue;
+  const genrePalette = DATA.genreHue; // {genre: {hue, sat, light}} — see genre_palette() in visual.py
   const hiddenGenres = new Set();
 
-  statEl.textContent = `${points.length} styles · ${Object.keys(genreHue).length} genres`;
+  statEl.textContent = `${points.length} styles · ${Object.keys(genrePalette).length} genres`;
+
+  function paletteOf(genre) {
+    return genrePalette[genre] ?? { hue: 0, sat: 0, light: 50 };
+  }
+
+  function applyGenreVars(selection, genreAccessor) {
+    selection
+      .style("--hue", (d) => `${paletteOf(genreAccessor(d)).hue}deg`)
+      .style("--sat", (d) => `${paletteOf(genreAccessor(d)).sat}%`)
+      .style("--light", (d) => `${paletteOf(genreAccessor(d)).light}%`);
+  }
 
   const xExtent = d3.extent(points, (d) => d.dim0);
   const yExtent = d3.extent(points, (d) => d.dim1);
@@ -75,11 +86,8 @@
       window.open(url, "_blank", "noopener");
     });
 
-  pointsSel
-    .append("circle")
-    .attr("r", 5)
-    .style("--hue", (d) => `${genreHue[d.genre] ?? 0}deg`)
-    .style("fill", "hsl(var(--hue) var(--genre-sat) var(--genre-light))");
+  const pointCircles = pointsSel.append("circle").attr("class", "genre-fill").attr("r", 5);
+  applyGenreVars(pointCircles, (d) => d.genre);
 
   pointsSel.append("text").text((d) => d.style);
 
@@ -156,7 +164,10 @@
 
   // --- tooltip ---
   function showTooltip(event, d) {
-    const hue = genreHue[d.genre] ?? 0;
+    const styleVars = (genre) => {
+      const p = paletteOf(genre);
+      return `--hue:${p.hue}deg; --sat:${p.sat}%; --light:${p.light}%;`;
+    };
     const rows = d.hover
       .map(
         ([genre, pct]) => `
@@ -164,12 +175,12 @@
           <span>${genre.replace(/_/g, " ")}</span>
           <span class="pct">${(pct * 100).toFixed(0)}%</span>
         </div>
-        <div class="tooltip-bar"><span style="width:${(pct * 100).toFixed(0)}%; background: hsl(${hue} var(--genre-sat) var(--genre-light))"></span></div>`
+        <div class="tooltip-bar"><span class="genre-bg" style="width:${(pct * 100).toFixed(0)}%; ${styleVars(genre)}"></span></div>`
       )
       .join("");
     tooltip.innerHTML = `
       <div class="tooltip-title">
-        <span class="tooltip-swatch" style="background: hsl(${hue} var(--genre-sat) var(--genre-light))"></span>
+        <span class="tooltip-swatch genre-bg" style="${styleVars(d.genre)}"></span>
         ${d.style}
       </div>
       ${rows}`;
@@ -264,9 +275,9 @@
   genreList.forEach(({ genre, count }) => {
     const item = document.createElement("div");
     item.className = "legend-item";
-    const hue = genreHue[genre] ?? 0;
+    const p = paletteOf(genre);
     item.innerHTML = `
-      <span class="legend-chip" style="background: hsl(${hue} var(--genre-sat) var(--genre-light))"></span>
+      <span class="legend-chip genre-bg" style="--hue:${p.hue}deg; --sat:${p.sat}%; --light:${p.light}%;"></span>
       <span class="legend-name">${genre.replace(/_/g, " ")}</span>
       <span class="legend-count">${count}</span>`;
     item.addEventListener("click", () => {
@@ -292,16 +303,16 @@
     const mh = el.clientHeight;
     miniSvg.attr("viewBox", `0 0 ${mw} ${mh}`);
     miniProjector = makeProjector(mw, mh, 0.08);
-    miniSvg
+    const miniCircles = miniSvg
       .selectAll("circle")
       .data(points)
       .join("circle")
+      .attr("class", "genre-fill")
       .attr("cx", (d) => miniProjector.project(d.dim0, d.dim1)[0])
       .attr("cy", (d) => miniProjector.project(d.dim0, d.dim1)[1])
       .attr("r", 1.3)
-      .style("--hue", (d) => `${genreHue[d.genre] ?? 0}deg`)
-      .style("fill", "hsl(var(--hue) var(--genre-sat) var(--genre-light))")
       .style("opacity", 0.55);
+    applyGenreVars(miniCircles, (d) => d.genre);
   }
 
   function updateMinimap() {

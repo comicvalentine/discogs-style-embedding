@@ -1,7 +1,10 @@
 /* Discogs Style Map — visual tokens
    Ground: cool blue-grey paper, not warm cream. Accent: teal, reserved for
-   interactive chrome only — genre colors live on a separate hue rotation
-   starting at 40deg so data color never collides with UI color. */
+   interactive chrome only. Genre colors are per-genre (hue, sat, light)
+   triples set inline by map.js (see genre_palette() in visual.py) rather
+   than one hue rotation at fixed sat/light — adjacent hues alone weren't
+   distinct enough at 15 categories, so lightness/saturation also step
+   between genres to add a second and third channel of separation. */
 
 :root {
   --paper: #eef1f2;
@@ -15,9 +18,6 @@
   --accent-light: 34%;
   --accent: hsl(var(--accent-hue) var(--accent-sat) var(--accent-light));
   --accent-soft: hsl(var(--accent-hue) 45% 93%);
-
-  --genre-sat: 56%;
-  --genre-light: 44%;
 
   --radius-sm: 4px;
   --radius-md: 7px;
@@ -37,11 +37,22 @@
     --line: #2a2f37;
     --accent-light: 60%;
     --accent-soft: hsl(var(--accent-hue) 40% 18%);
-    --genre-sat: 60%;
-    --genre-light: 64%;
     --shadow-float: 0 2px 8px rgba(0, 0, 0, 0.45), 0 16px 32px rgba(0, 0, 0, 0.4);
   }
+
+  /* Genre swatches read the same --hue/--sat/--light triple set inline by
+     map.js; dark mode brightens+saturates it a bit rather than needing a
+     second palette from Python. */
+  .genre-fill {
+    fill: hsl(var(--hue) calc(var(--sat) + 6%) calc(var(--light) + 24%));
+  }
+  .genre-bg {
+    background: hsl(var(--hue) calc(var(--sat) + 6%) calc(var(--light) + 24%));
+  }
 }
+
+.genre-fill { fill: hsl(var(--hue) var(--sat) var(--light)); }
+.genre-bg { background: hsl(var(--hue) var(--sat) var(--light)); }
 
 * { box-sizing: border-box; }
 

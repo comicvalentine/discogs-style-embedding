@@ -7,13 +7,48 @@ from dataclasses import dataclass
 from collections import defaultdict
 
 WEB_DIR = Path(__file__).parent / "web"
-GENRE_HUE_START = 40  # kept away from the UI accent hue (176, teal) in web/map.css
+GENRE_HUE_START = 40
+
+# A flat hue rotation wasn't distinct enough at 15 categories (adjacent hues
+# 24deg apart, e.g. Electronic/Classical/Folk all landed in the same green
+# band). Alternating lightness and saturation between neighbors adds two more
+# channels of separation on top of hue, so adjacent entries in sorted order
+# read as different colors even when their hues are close.
+GENRE_LIGHT_BANDS = (40, 56)
+GENRE_SAT_BANDS = (62, 48)
 
 
-def genre_hue_map(genres: list[str]) -> dict[str, int]:
-    ordered = sorted(set(genres))
+def genre_palette(genres: list[str]) -> dict[str, dict[str, int]]:
+    from collections import Counter
+    counts = Counter(genres)
+    by_freq = [g for g, _ in sorted(counts.items(), key=lambda kv: kv[1], reverse=True)]
+
+    # Evenly-spaced hues give every pair its guaranteed minimum (24deg at
+    # n=15), but the two rank-adjacent genres always get the *tightest* gap.
+    # Interleaving front/back of the frequency ranking means that tightest
+    # gap almost always falls between a common genre and a rare one, instead
+    # of between two genres that are both common enough to visually compete.
+    ordered = []
+    lo, hi = 0, len(by_freq) - 1
+    take_front = True
+    while lo <= hi:
+        if take_front:
+            ordered.append(by_freq[lo])
+            lo += 1
+        else:
+            ordered.append(by_freq[hi])
+            hi -= 1
+        take_front = not take_front
+
     n = len(ordered) or 1
-    return {g: (GENRE_HUE_START + round(i * 360 / n)) % 360 for i, g in enumerate(ordered)}
+    palette = {}
+    for i, g in enumerate(ordered):
+        palette[g] = {
+            "hue": (GENRE_HUE_START + round(i * 360 / n)) % 360,
+            "sat": GENRE_SAT_BANDS[i % 2],
+            "light": GENRE_LIGHT_BANDS[i % 2],
+        }
+    return palette
 
 
 def render_map_2d(algo, tag_dict, save_dir, hover_data, search_type,
@@ -34,7 +69,7 @@ def render_map_2d(algo, tag_dict, save_dir, hover_data, search_type,
         emb_df.to_csv(EMB_UMAP_DIR)
 
     genres = [tag_dict.get(style, "Unknown") for style in emb_df["style"]]
-    hue_map = genre_hue_map(genres)
+    palette = genre_palette(genres)
 
     points = []
     for style_key, genre, dim0, dim1 in zip(emb_df["style"], genres, emb_df["dim_0"], emb_df["dim_1"]):
@@ -47,11 +82,11 @@ def render_map_2d(algo, tag_dict, save_dir, hover_data, search_type,
             "hover": [[g, p] for g, p in props.items()],
         })
 
-    hue_map = {g.replace("_", " "): h for g, h in hue_map.items()}
+    palette = {g.replace("_", " "): v for g, v in palette.items()}
 
     payload = {
         "points": points,
-        "genreHue": hue_map,
+        "genreHue": palette,
         "init": {"style": init_style, "marginPct": init_margin_pct},
     }
 
