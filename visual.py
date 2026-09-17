@@ -7,21 +7,34 @@ from dataclasses import dataclass
 from collections import defaultdict
 
 WEB_DIR = Path(__file__).parent / "web"
-GENRE_HUE_START = 40
+GENRE_HUE_START = 355  # slot 0 lands on red, see PRIORITY_ANCHORS below
 
 # A flat hue rotation wasn't distinct enough at 15 categories (adjacent hues
 # 24deg apart, e.g. Electronic/Classical/Folk all landed in the same green
-# band). Alternating lightness and saturation between neighbors adds two more
-# channels of separation on top of hue, so adjacent entries in sorted order
-# read as different colors even when their hues are close.
-GENRE_LIGHT_BANDS = (40, 56)
-GENRE_SAT_BANDS = (62, 48)
+# band). Three bands of lightness/saturation, cycled instead of alternated,
+# add a second and third channel of separation on top of hue.
+GENRE_LIGHT_BANDS = (38, 56, 47)
+GENRE_SAT_BANDS = (64, 50, 58)
+
+# Rock / Electronic / Pop are the three genres users compare most, so they get
+# fixed slots exactly n/3 apart on the 15-slot wheel (0, 5, 10 -> 0deg, 120deg,
+# 240deg from GENRE_HUE_START) instead of falling wherever frequency-interleave
+# happens to put them. 0/5/10 also land on three different bands (0, 2, 1 mod
+# 3), so these three differ in lightness/saturation as well as hue. The
+# remaining 12 genres fill the leftover slots by frequency, as before.
+PRIORITY_ANCHORS = {"Rock": 0, "Electronic": 5, "Pop": 10}
 
 
 def genre_palette(genres: list[str]) -> dict[str, dict[str, int]]:
     from collections import Counter
     counts = Counter(genres)
-    by_freq = [g for g, _ in sorted(counts.items(), key=lambda kv: kv[1], reverse=True)]
+    n = len(counts) or 1
+
+    anchors = {g: slot for g, slot in PRIORITY_ANCHORS.items() if g in counts and slot < n}
+    taken_slots = set(anchors.values())
+    remaining_slots = [s for s in range(n) if s not in taken_slots]
+
+    by_freq = [g for g, _ in sorted(counts.items(), key=lambda kv: kv[1], reverse=True) if g not in anchors]
 
     # Evenly-spaced hues give every pair its guaranteed minimum (24deg at
     # n=15), but the two rank-adjacent genres always get the *tightest* gap.
@@ -40,13 +53,15 @@ def genre_palette(genres: list[str]) -> dict[str, dict[str, int]]:
             hi -= 1
         take_front = not take_front
 
-    n = len(ordered) or 1
+    slot_of = dict(anchors)
+    slot_of.update(zip(ordered, remaining_slots))
+
     palette = {}
-    for i, g in enumerate(ordered):
+    for g, slot in slot_of.items():
         palette[g] = {
-            "hue": (GENRE_HUE_START + round(i * 360 / n)) % 360,
-            "sat": GENRE_SAT_BANDS[i % 2],
-            "light": GENRE_LIGHT_BANDS[i % 2],
+            "hue": (GENRE_HUE_START + round(slot * 360 / n)) % 360,
+            "sat": GENRE_SAT_BANDS[slot % 3],
+            "light": GENRE_LIGHT_BANDS[slot % 3],
         }
     return palette
 

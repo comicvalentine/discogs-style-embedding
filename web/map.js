@@ -86,7 +86,7 @@
       window.open(url, "_blank", "noopener");
     });
 
-  const pointCircles = pointsSel.append("circle").attr("class", "genre-fill").attr("r", 5);
+  const pointCircles = pointsSel.append("circle").attr("class", "genre-fill").attr("r", 4.5);
   applyGenreVars(pointCircles, (d) => d.genre);
 
   pointsSel.append("text").text((d) => d.style);
@@ -310,7 +310,7 @@
       .attr("class", "genre-fill")
       .attr("cx", (d) => miniProjector.project(d.dim0, d.dim1)[0])
       .attr("cy", (d) => miniProjector.project(d.dim0, d.dim1)[1])
-      .attr("r", 1.3)
+      .attr("r", 2.6)
       .style("opacity", 0.55);
     applyGenreVars(miniCircles, (d) => d.genre);
   }
