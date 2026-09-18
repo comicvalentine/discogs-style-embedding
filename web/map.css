@@ -222,11 +222,11 @@ html, body {
 .map-app.genre-dim .point.is-dimmed text { display: none; }
 
 .ring {
-  fill: none;
+  fill: var(--ink);
+  fill-opacity: 0.08;
   stroke: var(--ink);
-  stroke-width: 2px;
+  stroke-width: 0.75px;
   pointer-events: none;
-  opacity: 0.9;
 }
 
 .tooltip {

@@ -264,11 +264,11 @@
       .attr("class", "ring")
       .attr("cx", d.px)
       .attr("cy", d.py)
-      .attr("r", 14);
+      .attr("r", 10);
     ring
       .transition()
       .duration(600)
-      .attr("r", 26)
+      .attr("r", 20)
       .style("opacity", 0)
       .transition()
       .delay(200)
@@ -279,7 +279,7 @@
         d3.select(this)
           .transition()
           .duration(600)
-          .attr("r", 26)
+          .attr("r", 20)
           .style("opacity", 0)
           .transition()
           .delay(200)

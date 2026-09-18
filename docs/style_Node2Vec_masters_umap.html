@@ -233,11 +233,11 @@ html, body {
 .map-app.genre-dim .point.is-dimmed text { display: none; }
 
 .ring {
-  fill: none;
+  fill: var(--ink);
+  fill-opacity: 0.08;
   stroke: var(--ink);
-  stroke-width: 2px;
+  stroke-width: 0.75px;
   pointer-events: none;
-  opacity: 0.9;
 }
 
 .tooltip {
@@ -732,11 +732,11 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
       .attr("class", "ring")
       .attr("cx", d.px)
       .attr("cy", d.py)
-      .attr("r", 14);
+      .attr("r", 10);
     ring
       .transition()
       .duration(600)
-      .attr("r", 26)
+      .attr("r", 20)
       .style("opacity", 0)
       .transition()
       .delay(200)
@@ -747,7 +747,7 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
         d3.select(this)
           .transition()
           .duration(600)
-          .attr("r", 26)
+          .attr("r", 20)
           .style("opacity", 0)
           .transition()
           .delay(200)
