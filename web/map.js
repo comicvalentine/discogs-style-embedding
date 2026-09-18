@@ -209,12 +209,30 @@
     moveTooltip(event);
   }
 
+  // .map-frame clips its overflow, so a tooltip placed past an edge gets cut
+  // off rather than spilling out. Measure the real box (height varies with the
+  // genre-row count and the touch-only button) instead of assuming a size.
+  const TIP_GAP = 14;
+  const TIP_EDGE = 8;
+
   function moveTooltip(event) {
     const rect = frame.getBoundingClientRect();
-    let left = event.clientX - rect.left + 14;
-    let top = event.clientY - rect.top + 14;
-    if (left + 240 > rect.width) left = event.clientX - rect.left - 254;
-    if (top + 140 > rect.height) top = event.clientY - rect.top - 154;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    const cx = event.clientX - rect.left;
+    const cy = event.clientY - rect.top;
+
+    let left = cx + TIP_GAP;
+    if (left + tw > rect.width - TIP_EDGE) left = cx - TIP_GAP - tw;
+
+    let top = cy + TIP_GAP;
+    if (top + th > rect.height - TIP_EDGE) top = cy - TIP_GAP - th;
+
+    // Flipping can overshoot the opposite edge when the cursor is near a
+    // corner of a small frame, so clamp both axes as a last step.
+    left = Math.max(TIP_EDGE, Math.min(left, rect.width - tw - TIP_EDGE));
+    top = Math.max(TIP_EDGE, Math.min(top, rect.height - th - TIP_EDGE));
+
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
   }
