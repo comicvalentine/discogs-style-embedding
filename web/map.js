@@ -21,6 +21,7 @@
   const points = DATA.points;
   const genrePalette = DATA.genreHue; // {genre: {hue, sat, light}} — see genre_palette() in visual.py
   const hiddenGenres = new Set();
+  const isTouch = matchMedia("(hover: none)").matches;
 
   statEl.textContent = `${points.length} styles · ${Object.keys(genrePalette).length} genres`;
 
@@ -78,12 +79,24 @@
     .join("g")
     .attr("class", "point")
     .attr("data-genre", (d) => d.genre)
-    .on("mouseenter", (event, d) => showTooltip(event, d))
-    .on("mousemove", (event) => moveTooltip(event))
-    .on("mouseleave", hideTooltip)
+    .on("mouseenter", (event, d) => {
+      if (!isTouch) showTooltip(event, d, false);
+    })
+    .on("mousemove", (event) => {
+      if (!isTouch) moveTooltip(event);
+    })
+    .on("mouseleave", () => {
+      if (!isTouch) hideTooltip();
+    })
     .on("click", (event, d) => {
-      const url = `https://www.discogs.com/search?type=master&page=1&style_exact=${encodeURIComponent(d.style)}&sort=have%2Cdesc`;
-      window.open(url, "_blank", "noopener");
+      // No hover on touch, so a tap opens the tooltip (which carries its own
+      // Discogs link) instead of navigating away immediately.
+      if (isTouch) {
+        event.stopPropagation();
+        showTooltip(event, d, true);
+      } else {
+        window.open(discogsUrl(d), "_blank", "noopener");
+      }
     });
 
   const pointCircles = pointsSel.append("circle").attr("class", "genre-fill").attr("r", 4.5);
@@ -163,7 +176,11 @@
   }
 
   // --- tooltip ---
-  function showTooltip(event, d) {
+  function discogsUrl(d) {
+    return `https://www.discogs.com/search?type=master&page=1&style_exact=${encodeURIComponent(d.style)}&sort=have%2Cdesc`;
+  }
+
+  function showTooltip(event, d, withButton) {
     const styleVars = (genre) => {
       const p = paletteOf(genre);
       return `--hue:${p.hue}deg; --sat:${p.sat}%; --light:${p.light}%;`;
@@ -178,12 +195,16 @@
         <div class="tooltip-bar"><span class="genre-bg" style="width:${(pct * 100).toFixed(0)}%; ${styleVars(genre)}"></span></div>`
       )
       .join("");
+    const button = withButton
+      ? `<button class="tooltip-button" data-url="${discogsUrl(d)}">Go to Discogs</button>`
+      : "";
     tooltip.innerHTML = `
       <div class="tooltip-title">
         <span class="tooltip-swatch genre-bg" style="${styleVars(d.genre)}"></span>
         ${d.style}
       </div>
-      ${rows}`;
+      ${rows}
+      ${button}`;
     tooltip.classList.add("is-visible");
     moveTooltip(event);
   }
@@ -342,6 +363,16 @@
     viewfinder.style.width = `${w}px`;
     viewfinder.style.height = `${h}px`;
   }
+
+  document.addEventListener("click", (e) => {
+    if (isTouch && !tooltip.contains(e.target)) hideTooltip();
+  });
+
+  tooltip.addEventListener("click", (e) => {
+    if (e.target.classList.contains("tooltip-button")) {
+      window.open(e.target.dataset.url, "_blank", "noopener");
+    }
+  });
 
   // --- boot ---
   buildMinimap();
