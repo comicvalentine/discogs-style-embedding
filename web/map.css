@@ -84,6 +84,7 @@ html, body {
 }
 
 .field {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -111,6 +112,56 @@ html, body {
 .field:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.suggest {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: -1px;
+  min-width: calc(100% + 2px);
+  width: max-content;
+  max-width: 280px;
+  max-height: 232px;
+  overflow-y: auto;
+  z-index: 40;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-float);
+}
+
+.suggest.is-open { display: block; }
+
+.suggest li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 3px;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.suggest li.is-active { background: var(--paper); }
+
+.suggest-chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.suggest-genre {
+  margin-left: auto;
+  padding-left: 10px;
+  font-family: var(--font-label);
+  font-size: 10.5px;
+  color: var(--muted);
 }
 
 .btn {

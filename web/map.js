@@ -15,6 +15,7 @@
   const labelsOffBtn = document.getElementById("labels-off");
   const statEl = document.getElementById("stat-readout");
   const legendEl = document.getElementById("legend");
+  const suggestEl = document.getElementById("suggest");
   const miniSvg = d3.select("#minimap-svg");
   const viewfinder = document.querySelector(".viewfinder");
 
@@ -244,7 +245,95 @@
   // --- search ---
   const normalize = (s) => (s || "").toLowerCase().replace(/[-_\s]+/g, "");
 
+  // normalize() drops case, hyphens, underscores and spaces on both sides of
+  // the comparison, so "hip hop", "Hip-Hop" and "hiphop" all match each other.
+  const SUGGEST_MAX = 8;
+  let suggestions = [];
+  let suggestIndex = -1;
+
+  function focusPoint(d) {
+    zoomTo(d.px, d.py, Math.max(currentTransform.k, 6), true);
+    pulseRing(d);
+  }
+
+  function closeSuggest() {
+    suggestEl.classList.remove("is-open");
+    suggestEl.replaceChildren();
+    searchInput.setAttribute("aria-expanded", "false");
+    suggestions = [];
+    suggestIndex = -1;
+  }
+
+  function buildSuggest() {
+    const term = normalize(searchInput.value);
+    if (!term) {
+      closeSuggest();
+      return;
+    }
+
+    suggestions = points
+      .filter((d) => normalize(d.style).startsWith(term))
+      .sort((a, b) => a.style.localeCompare(b.style))
+      .slice(0, SUGGEST_MAX);
+
+    if (!suggestions.length) {
+      closeSuggest();
+      return;
+    }
+
+    suggestEl.replaceChildren(
+      ...suggestions.map((d, i) => {
+        const p = paletteOf(d.genre);
+        const li = document.createElement("li");
+        li.setAttribute("role", "option");
+        li.dataset.i = i;
+
+        const chip = document.createElement("span");
+        chip.className = "suggest-chip genre-bg";
+        chip.style.setProperty("--hue", `${p.hue}deg`);
+        chip.style.setProperty("--sat", `${p.sat}%`);
+        chip.style.setProperty("--light", `${p.light}%`);
+
+        const name = document.createElement("span");
+        name.textContent = d.style;
+
+        const genre = document.createElement("span");
+        genre.className = "suggest-genre";
+        genre.textContent = d.genre;
+
+        li.append(chip, name, genre);
+        return li;
+      })
+    );
+
+    suggestIndex = 0;
+    highlightSuggest();
+    suggestEl.classList.add("is-open");
+    searchInput.setAttribute("aria-expanded", "true");
+  }
+
+  function highlightSuggest() {
+    Array.from(suggestEl.children).forEach((li, i) => {
+      const on = i === suggestIndex;
+      li.classList.toggle("is-active", on);
+      li.setAttribute("aria-selected", on ? "true" : "false");
+      if (on) li.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function pickSuggestion(i) {
+    const d = suggestions[i];
+    if (!d) return;
+    searchInput.value = d.style;
+    closeSuggest();
+    focusPoint(d);
+  }
+
   function runSearch() {
+    if (suggestions.length) {
+      pickSuggestion(suggestIndex >= 0 ? suggestIndex : 0);
+      return;
+    }
     const term = normalize(searchInput.value);
     if (!term) return;
     const match = points.find((d) => normalize(d.style) === term);
@@ -253,8 +342,7 @@
       setTimeout(() => searchInput.classList.remove("is-error"), 900);
       return;
     }
-    zoomTo(match.px, match.py, Math.max(currentTransform.k, 6), true);
-    pulseRing(match);
+    focusPoint(match);
   }
 
   function pulseRing(d) {
@@ -284,8 +372,28 @@
     setTimeout(() => ring.remove(), 3200);
   }
 
+  searchInput.addEventListener("input", buildSuggest);
+
   searchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") runSearch();
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!suggestions.length) return;
+      e.preventDefault();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      suggestIndex = (suggestIndex + step + suggestions.length) % suggestions.length;
+      highlightSuggest();
+    } else if (e.key === "Enter") {
+      runSearch();
+    } else if (e.key === "Escape") {
+      closeSuggest();
+    }
+  });
+
+  // mousedown, not click: the input would blur first and close the list.
+  suggestEl.addEventListener("mousedown", (e) => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    e.preventDefault();
+    pickSuggestion(Number(li.dataset.i));
   });
 
   resetBtn.addEventListener("click", () => fitAll(true));
@@ -377,6 +485,7 @@
 
   document.addEventListener("click", (e) => {
     if (isTouch && !tooltip.contains(e.target)) hideTooltip();
+    if (!e.target.closest(".field")) closeSuggest();
   });
 
   tooltip.addEventListener("click", (e) => {

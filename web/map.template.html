@@ -17,7 +17,9 @@
   <div class="toolbar">
     <div class="field">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="search-input" placeholder="Find a style…" autocomplete="off">
+      <input id="search-input" placeholder="Find a style…" autocomplete="off"
+             role="combobox" aria-expanded="false" aria-controls="suggest">
+      <ul class="suggest" id="suggest" role="listbox"></ul>
     </div>
     <div class="toggle">
       <button id="labels-on" class="is-active">Labels On</button>

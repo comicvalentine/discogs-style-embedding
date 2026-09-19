@@ -95,6 +95,7 @@ html, body {
 }
 
 .field {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -122,6 +123,56 @@ html, body {
 .field:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.suggest {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: -1px;
+  min-width: calc(100% + 2px);
+  width: max-content;
+  max-width: 280px;
+  max-height: 232px;
+  overflow-y: auto;
+  z-index: 40;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-float);
+}
+
+.suggest.is-open { display: block; }
+
+.suggest li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 3px;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.suggest li.is-active { background: var(--paper); }
+
+.suggest-chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.suggest-genre {
+  margin-left: auto;
+  padding-left: 10px;
+  font-family: var(--font-label);
+  font-size: 10.5px;
+  color: var(--muted);
 }
 
 .btn {
@@ -438,7 +489,9 @@ html, body {
   <div class="toolbar">
     <div class="field">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="search-input" placeholder="Find a style…" autocomplete="off">
+      <input id="search-input" placeholder="Find a style…" autocomplete="off"
+             role="combobox" aria-expanded="false" aria-controls="suggest">
+      <ul class="suggest" id="suggest" role="listbox"></ul>
     </div>
     <div class="toggle">
       <button id="labels-on" class="is-active">Labels On</button>
@@ -491,6 +544,7 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
   const labelsOffBtn = document.getElementById("labels-off");
   const statEl = document.getElementById("stat-readout");
   const legendEl = document.getElementById("legend");
+  const suggestEl = document.getElementById("suggest");
   const miniSvg = d3.select("#minimap-svg");
   const viewfinder = document.querySelector(".viewfinder");
 
@@ -720,7 +774,95 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
   // --- search ---
   const normalize = (s) => (s || "").toLowerCase().replace(/[-_\s]+/g, "");
 
+  // normalize() drops case, hyphens, underscores and spaces on both sides of
+  // the comparison, so "hip hop", "Hip-Hop" and "hiphop" all match each other.
+  const SUGGEST_MAX = 8;
+  let suggestions = [];
+  let suggestIndex = -1;
+
+  function focusPoint(d) {
+    zoomTo(d.px, d.py, Math.max(currentTransform.k, 6), true);
+    pulseRing(d);
+  }
+
+  function closeSuggest() {
+    suggestEl.classList.remove("is-open");
+    suggestEl.replaceChildren();
+    searchInput.setAttribute("aria-expanded", "false");
+    suggestions = [];
+    suggestIndex = -1;
+  }
+
+  function buildSuggest() {
+    const term = normalize(searchInput.value);
+    if (!term) {
+      closeSuggest();
+      return;
+    }
+
+    suggestions = points
+      .filter((d) => normalize(d.style).startsWith(term))
+      .sort((a, b) => a.style.localeCompare(b.style))
+      .slice(0, SUGGEST_MAX);
+
+    if (!suggestions.length) {
+      closeSuggest();
+      return;
+    }
+
+    suggestEl.replaceChildren(
+      ...suggestions.map((d, i) => {
+        const p = paletteOf(d.genre);
+        const li = document.createElement("li");
+        li.setAttribute("role", "option");
+        li.dataset.i = i;
+
+        const chip = document.createElement("span");
+        chip.className = "suggest-chip genre-bg";
+        chip.style.setProperty("--hue", `${p.hue}deg`);
+        chip.style.setProperty("--sat", `${p.sat}%`);
+        chip.style.setProperty("--light", `${p.light}%`);
+
+        const name = document.createElement("span");
+        name.textContent = d.style;
+
+        const genre = document.createElement("span");
+        genre.className = "suggest-genre";
+        genre.textContent = d.genre;
+
+        li.append(chip, name, genre);
+        return li;
+      })
+    );
+
+    suggestIndex = 0;
+    highlightSuggest();
+    suggestEl.classList.add("is-open");
+    searchInput.setAttribute("aria-expanded", "true");
+  }
+
+  function highlightSuggest() {
+    Array.from(suggestEl.children).forEach((li, i) => {
+      const on = i === suggestIndex;
+      li.classList.toggle("is-active", on);
+      li.setAttribute("aria-selected", on ? "true" : "false");
+      if (on) li.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function pickSuggestion(i) {
+    const d = suggestions[i];
+    if (!d) return;
+    searchInput.value = d.style;
+    closeSuggest();
+    focusPoint(d);
+  }
+
   function runSearch() {
+    if (suggestions.length) {
+      pickSuggestion(suggestIndex >= 0 ? suggestIndex : 0);
+      return;
+    }
     const term = normalize(searchInput.value);
     if (!term) return;
     const match = points.find((d) => normalize(d.style) === term);
@@ -729,8 +871,7 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
       setTimeout(() => searchInput.classList.remove("is-error"), 900);
       return;
     }
-    zoomTo(match.px, match.py, Math.max(currentTransform.k, 6), true);
-    pulseRing(match);
+    focusPoint(match);
   }
 
   function pulseRing(d) {
@@ -760,8 +901,28 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
     setTimeout(() => ring.remove(), 3200);
   }
 
+  searchInput.addEventListener("input", buildSuggest);
+
   searchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") runSearch();
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!suggestions.length) return;
+      e.preventDefault();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      suggestIndex = (suggestIndex + step + suggestions.length) % suggestions.length;
+      highlightSuggest();
+    } else if (e.key === "Enter") {
+      runSearch();
+    } else if (e.key === "Escape") {
+      closeSuggest();
+    }
+  });
+
+  // mousedown, not click: the input would blur first and close the list.
+  suggestEl.addEventListener("mousedown", (e) => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    e.preventDefault();
+    pickSuggestion(Number(li.dataset.i));
   });
 
   resetBtn.addEventListener("click", () => fitAll(true));
@@ -853,6 +1014,7 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
 
   document.addEventListener("click", (e) => {
     if (isTouch && !tooltip.contains(e.target)) hideTooltip();
+    if (!e.target.closest(".field")) closeSuggest();
   });
 
   tooltip.addEventListener("click", (e) => {
