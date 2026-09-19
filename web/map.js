@@ -81,7 +81,12 @@
     .attr("class", "point")
     .attr("data-genre", (d) => d.genre)
     .on("mouseenter", (event, d) => {
-      if (!isTouch) showTooltip(event, d, false);
+      if (isTouch) return;
+      // SVG has no z-index — paint order is document order, so a label can sit
+      // under a later sibling's label. Move the active point last so the label
+      // the tooltip is describing is never the occluded one.
+      d3.select(event.currentTarget).raise();
+      showTooltip(event, d, false);
     })
     .on("mousemove", (event) => {
       if (!isTouch) moveTooltip(event);
@@ -94,6 +99,7 @@
       // Discogs link) instead of navigating away immediately.
       if (isTouch) {
         event.stopPropagation();
+        d3.select(event.currentTarget).raise();
         showTooltip(event, d, true);
       } else {
         window.open(discogsUrl(d), "_blank", "noopener");
