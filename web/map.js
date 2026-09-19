@@ -264,28 +264,21 @@
       .attr("class", "ring")
       .attr("cx", d.px)
       .attr("cy", d.py)
-      .attr("r", 10);
+      .attr("r", 6);
     ring
-      .transition()
-      .duration(600)
-      .attr("r", 20)
-      .style("opacity", 0)
-      .transition()
-      .delay(200)
-      .duration(600)
-      .attr("r", 14)
       .style("opacity", 1)
+      .transition()
+      .duration(700)
+      .attr("r", 24)
+      .style("opacity", 0)
       .on("end", function repeat() {
         d3.select(this)
-          .transition()
-          .duration(600)
-          .attr("r", 20)
-          .style("opacity", 0)
-          .transition()
-          .delay(200)
-          .duration(600)
-          .attr("r", 14)
+          .attr("r", 6)
           .style("opacity", 1)
+          .transition()
+          .duration(700)
+          .attr("r", 24)
+          .style("opacity", 0)
           .on("end", repeat);
       });
     setTimeout(() => ring.remove(), 3200);

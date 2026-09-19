@@ -79,7 +79,7 @@ html, body {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -103,7 +103,7 @@ html, body {
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 12.5px;
-  width: 160px;
+  width: 140px;
 }
 
 #search-input::placeholder { color: var(--muted); }
@@ -222,10 +222,9 @@ html, body {
 .map-app.genre-dim .point.is-dimmed text { display: none; }
 
 .ring {
-  fill: var(--ink);
-  fill-opacity: 0.08;
-  stroke: var(--ink);
-  stroke-width: 0.75px;
+  fill: var(--accent);
+  fill-opacity: 0.15;
+  stroke: none;
   pointer-events: none;
 }
 
@@ -393,6 +392,15 @@ html, body {
 .legend-item.is-off .legend-chip { filter: grayscale(1); }
 
 @media (max-width: 760px) {
+  .toolbar {
+    gap: 6px;
+  }
+
+  #search-input {
+    width: 120px;
+  }
+
+
   .map-app {
     grid-template-columns: 1fr;
     padding: 10px;

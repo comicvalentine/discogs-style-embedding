@@ -90,7 +90,7 @@ html, body {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -114,7 +114,7 @@ html, body {
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 12.5px;
-  width: 160px;
+  width: 140px;
 }
 
 #search-input::placeholder { color: var(--muted); }
@@ -233,10 +233,9 @@ html, body {
 .map-app.genre-dim .point.is-dimmed text { display: none; }
 
 .ring {
-  fill: var(--ink);
-  fill-opacity: 0.08;
-  stroke: var(--ink);
-  stroke-width: 0.75px;
+  fill: var(--accent);
+  fill-opacity: 0.15;
+  stroke: none;
   pointer-events: none;
 }
 
@@ -404,6 +403,15 @@ html, body {
 .legend-item.is-off .legend-chip { filter: grayscale(1); }
 
 @media (max-width: 760px) {
+  .toolbar {
+    gap: 6px;
+  }
+
+  #search-input {
+    width: 120px;
+  }
+
+
   .map-app {
     grid-template-columns: 1fr;
     padding: 10px;
@@ -732,28 +740,21 @@ window.__MAP_DATA__ = {"points": [{"style": "Experimental", "dim0": -7.13662, "d
       .attr("class", "ring")
       .attr("cx", d.px)
       .attr("cy", d.py)
-      .attr("r", 10);
+      .attr("r", 6);
     ring
-      .transition()
-      .duration(600)
-      .attr("r", 20)
-      .style("opacity", 0)
-      .transition()
-      .delay(200)
-      .duration(600)
-      .attr("r", 14)
       .style("opacity", 1)
+      .transition()
+      .duration(700)
+      .attr("r", 24)
+      .style("opacity", 0)
       .on("end", function repeat() {
         d3.select(this)
-          .transition()
-          .duration(600)
-          .attr("r", 20)
-          .style("opacity", 0)
-          .transition()
-          .delay(200)
-          .duration(600)
-          .attr("r", 14)
+          .attr("r", 6)
           .style("opacity", 1)
+          .transition()
+          .duration(700)
+          .attr("r", 24)
+          .style("opacity", 0)
           .on("end", repeat);
       });
     setTimeout(() => ring.remove(), 3200);
